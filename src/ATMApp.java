@@ -25,8 +25,9 @@ class Menu {
 	public static final int BALANCE_INQUIRY = 1;
 	public static final int WITHDRAWAL = 2;
 	public static final int DEPOSIT = 3;
-	public static final int EXIT = 4;
-	public static final int PROGRAM_TERMINATE = 5;
+	public static final int ADD_ACOUNT=4;
+	public static final int EXIT = 5;
+	public static final int PROGRAM_TERMINATE = 6;
 
 	// display main menu and get user command
 	public int displayMainMenu(Screen screen, Keypad keypad) {
@@ -34,8 +35,9 @@ class Menu {
 		screen.displayMessageLine( "\t\t1 - Inquiry balance" );
 		screen.displayMessageLine( "\t\t2 - Withdraw" );
 		screen.displayMessageLine( "\t\t3 - Deposit" );
-		screen.displayMessageLine( "\t\t4 - Exit" );
-		screen.displayMessageLine( "\t\t5 - Bye\n" );
+		screen.displayMessageLine( "\t\t4 - Add Acount");
+		screen.displayMessageLine( "\t\t5 - Exit" );
+		screen.displayMessageLine( "\t\t6 - Bye\n" );
 		screen.displayMessage( "\tChoice: " );
 		return keypad.getInput();
 	}
@@ -57,7 +59,10 @@ class Message {
 	public static final String INPUT_NUMBER = "\tEnter your account number: ";
 	public static final String INPUT_PIN = "\tEnter your PIN number: ";
 	public static final String INPUT_AMOUNT = "\tEnter amount (0 to cancel): ";
-
+	
+	public static final String INPUT_NEW_NUMBER ="\tEnter new account number:";
+	public static final String INPUT_NEW_PIN ="\tEnter new PIN number:";
+	public static final String EXISTACCOUNT = "\talready exist account number";
 	public static final String CANCEL_CREDIT = "\tCancel the deposit";
 	public static final String CANCEL_DEBIT = "\tCancel the withdraw";
 
@@ -91,21 +96,21 @@ class BankDatabase { // class BankDatabase<Integer, Account> extends TreeMap<Int
 	private Account accounts[]; // array of Accounts
 
 	public BankDatabase() { 
-		accounts = new Account[ 3 ]; 
+		accounts = new Account[ 4 ]; 
 	      	accounts[ 0 ] = new Account( 1, 11, 1000 );
 	      	accounts[ 1 ] = new Account( 2, 22, 2000 );  
 	      	accounts[ 2 ] = new Account( 3, 33, 3000 );  
+	      	accounts[ 3 ] = new Account( 0, 00, 0000 );  
 	} 
 
 	public int 	getBalance(int number) { return getAccount(number).getBalance(); }
 	public void 	deposit(int number, int amount) { getAccount(number).deposit(amount); }
 	public void 	withdraw(int number, int amount) { getAccount(number).withdraw(amount); }
-
+	public void addAccount(int number, int pin,int balance) {accounts[3]=new Account(number,pin,balance);};
 	public boolean authenticateUser( int number, int pin ) {
 		Account account = getAccount( number );
 		return ( account != null ) ? account.validatePIN( pin ) : false;
 	}
-
 	// helper method
 	private Account getAccount( int number ) {
 		for ( Account account : accounts ) {
@@ -113,6 +118,13 @@ class BankDatabase { // class BankDatabase<Integer, Account> extends TreeMap<Int
 				return account;
 		}
 		return null;
+	} 
+	public boolean getAccountexist( int number ) {
+		for ( Account account : accounts ) {
+			if ( account.getAccountNumber() == number ) 
+				return true;
+		}
+		return false;
 	} 
 } // end class BankDatabase
 /* Control classes:
@@ -232,6 +244,34 @@ class Withdrawal extends Transaction {
 	} 
 } // end class Withdrawal
 
+class Newaccount extends Transaction {
+	private int newAccountNumber;
+	private int newpinNumber;
+	private int newbalance=0;
+	private Keypad keypad;
+	
+	public Newaccount(int number, Screen screen, BankDatabase database,Keypad keypad) {
+		super(number, screen, database);
+		this.keypad = keypad;
+	}
+	public void execute() {
+		screen.displayMessageLine( Message.INPUT_NEW_NUMBER);
+		newAccountNumber = keypad.getInput();
+		screen.displayMessageLine( Message.INPUT_NEW_PIN);
+		newpinNumber=keypad.getInput();
+		
+		if(getBankDatabase().getAccountexist(newAccountNumber)==false) {
+		getBankDatabase().addAccount(newAccountNumber, newpinNumber,newbalance);
+		}
+		else
+		{
+			screen.displayMessageLine(Message.EXISTACCOUNT);
+		}
+	
+	}
+	
+}
+
 class ATM {
 	private int currentAccountNumber; // current account
 	private boolean userAuthenticated; 
@@ -301,6 +341,11 @@ class ATM {
 				currentTransaction.execute();
 				currentTransaction = null;
 				break; 
+			case Menu.ADD_ACOUNT:
+				currentTransaction = createTransaction( command );
+				currentTransaction.execute();
+				currentTransaction = null;
+				break;
 			case Menu.EXIT:
 				userExited = true;
 				break;
@@ -328,6 +373,8 @@ class ATM {
 		case Menu.DEPOSIT:
 			temp = new Deposit( currentAccountNumber, screen, database, keypad );
 			break;
+		case Menu.ADD_ACOUNT:
+			 temp = new Newaccount(currentAccountNumber, screen, database, keypad); 
 		}
 		return temp; 
 	}
